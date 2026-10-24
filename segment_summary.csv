@@ -1,0 +1,4 @@
+segment,segment_rank,providers,pct4_t1,ecds_pct12_t12,dta12_per_100_adm,ecds_pct4_admitted
+Lower pressure,0,26,0.7171,0.0475,2.9255,0.4516
+Moderate pressure,1,55,0.6024,0.0976,8.4707,0.2522
+High pressure,2,35,0.5095,0.1528,22.9873,0.1971
