@@ -1,2 +1,6 @@
-data/
 __pycache__/
+*.pyc
+app/raw/
+app/data/ae.sqlite
+app/.streamlit/secrets.toml
+pipeline/data/

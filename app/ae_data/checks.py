@@ -76,8 +76,20 @@ def waiting_time_coverage(waits: pd.DataFrame, national: pd.DataFrame) -> list[s
     return notes
 
 
+def check_rates_match_counts(national: pd.DataFrame, tolerance: float = 0.01) -> list[str]:
+    """Every rate per 100,000 must equal attendances / population (within 1%)."""
+    keys = ["dimension", "period_type", "period", "category"]
+    w = national[national["measure"].isin(["attendances", "population", "rate_per_100k"])] \
+        .pivot_table(index=keys, columns="measure", values="value", aggfunc="first").dropna()
+    if w.empty:
+        return []
+    bad = (w["rate_per_100k"] / (1e5 * w["attendances"] / w["population"]) - 1).abs() > tolerance
+    return [f"{bad.sum()} rates per 100,000 do not match attendances / population"] if bad.any() else []
+
+
 def run_checks(national, provider, waits) -> list[str]:
     out = check_no_duplicate_keys(national) + check_months_add_up_to_years(national) \
+        + check_rates_match_counts(national) \
         + check_wait_counts_consistent(national)
     if len(waits):
         out += check_percentages_in_range(national, waits) + check_providers_sum_to_england(provider)

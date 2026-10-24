@@ -33,7 +33,8 @@ figures are never double counted.
 
 **Checks run before the database is written** (`ae_data/checks.py`): no duplicate rows; monthly
 attendances add up to each year's published total; published 12 hour counts and percentages agree;
-percentages lie between 0 and 100; trust totals add up to England's. The build stops if any check fails.
+percentages lie between 0 and 100; every rate per 100,000 matches attendances ÷ population; trust
+totals add up to England's. The build stops if any check fails.
 
 ## Run it locally
 
@@ -77,4 +78,9 @@ fake Claude client), and a full run of `app.py` with and without an API key.
   same year rather than across years.
 - Counts of 1 to 7 are suppressed in the trust files and are not stored.
 - Diagnoses are stored by year only, to keep the database small.
+- NHS England's 2025-26 file publishes age-group rates per 100,000 that do not match its own
+  attendance and population counts (for example 263,309 per 100,000 for ages 5 to 9, where the counts
+  give 37,978). The build detects this: earlier years use the 2024-25 publication, which is consistent,
+  and 2025-26 rates are recalculated from attendances and population. A check stops the build if any
+  stored rate disagrees with its counts.
 - Ethnicity is not stated or unknown for a large share of attendances.

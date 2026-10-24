@@ -64,6 +64,19 @@ def test_headline_matches_published_totals():
     assert int(h.loc["2024-25", "attendances"]) == 25_822_265
 
 
+def test_age_rates_match_counts_and_bands_merge():
+    df = run_select("""SELECT a.category, a.value AS att, p.value AS pop, r.value AS rate FROM national a
+        JOIN national p ON p.dimension = a.dimension AND p.period = a.period AND p.period_type = a.period_type
+             AND p.category = a.category AND p.measure = 'population'
+        JOIN national r ON r.dimension = a.dimension AND r.period = a.period AND r.period_type = a.period_type
+             AND r.category = a.category AND r.measure = 'rate_per_100k'
+        WHERE a.dimension = 'Age' AND a.measure = 'attendances'""", CON)
+    assert len(df) > 0
+    assert ((df["rate"] / (1e5 * df["att"] / df["pop"]) - 1).abs() <= 0.01).all()
+    cats = set(run_select("SELECT DISTINCT category FROM national WHERE dimension = 'Age'", CON)["category"])
+    assert "05-09" not in cats and "5-9" in cats
+
+
 def test_monthly_series_complete():
     m = views.monthly(CON)
     assert len(m) == 72 and m["month"].iloc[0] == "2020-04" and m["month"].iloc[-1] == "2026-03"
@@ -81,6 +94,11 @@ def test_explore_views_return_rows():
             df = views.breakdown(CON, dim, measure, "2025-26", 5)
             assert "category" in df.columns
     assert len(views.breakdown(CON, "Chief complaint", "attendances", "2025-26", 5, "chest")) >= 1
+    top = views.breakdown(CON, "Chief complaint", "attendances", "2025-26", 3)
+    assert not top["category"].str.lower().str.startswith(("not submitted", "invalid")).any()
+    with_bad = views.breakdown(CON, "Chief complaint", "attendances", "2025-26", 3, include_unrecorded=True)
+    assert with_bad["category"].str.lower().str.startswith("not submitted").any()
+    assert 10 < views.unrecorded_share(CON, "Chief complaint", "2025-26") < 50
 
 
 def test_trust_views():

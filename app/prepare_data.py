@@ -62,6 +62,8 @@ def main() -> None:
     if failures:
         print("Data checks failed:\n  " + "\n  ".join(failures))
         sys.exit(1)
+    for note in national.attrs.get("notes", []):
+        print("Fixed:", note)
     print("All data checks passed.")
     for note in waiting_time_coverage(waits, national):
         print("Note:", note)

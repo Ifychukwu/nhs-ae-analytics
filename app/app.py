@@ -119,12 +119,20 @@ with tab_explore:
                            placeholder="e.g. chest, fracture, ambulance")
     top = c5.slider("Show top", 5, 50, 15, key="ex_top")
 
-    data = cached("breakdown", dim, measure, year, top, search)
+    share = cached("unrecorded_share", dim, year)
+    include_bad = False
+    if share:
+        include_bad = st.toggle(f"Include records coded 'Not submitted' or 'Invalid' ({share:.1f}% of attendances)",
+                                key="ex_bad")
+    data = cached("breakdown", dim, measure, year, top, search, include_bad)
     if data.empty:
         st.info("No rows match. Try another year or clear the filter.")
     else:
         fig = px.bar(data.iloc[::-1], x="value", y="category", orientation="h",
                      labels={"value": MEASURE_LABELS.get(measure, measure), "category": ""})
+        fig.update_traces(hovertemplate="%{y}<br>%{x:,.0f}<extra></extra>"
+                          if measure in ("attendances", "population", "rate_per_100k")
+                          else "%{y}<br>%{x:.1f}%<extra></extra>")
         fig.update_layout(height=max(320, 26 * len(data) + 80), margin=dict(t=10, b=10))
         st.plotly_chart(fig, use_container_width=True)
         st.download_button("Download these rows (CSV)", data.to_csv(index=False).encode(),
@@ -138,6 +146,7 @@ with tab_explore:
         if not tr.empty:
             ft = px.line(tr, x="period", y="value", color="category", markers=True,
                          labels={"period": "", "value": MEASURE_LABELS.get(measure, measure), "category": ""})
+            ft.update_traces(hovertemplate="%{fullData.name}<br>%{x}: %{y:,.0f}<extra></extra>")
             ft.update_layout(height=400, legend=dict(orientation="h", y=-0.25), margin=dict(t=10))
             st.plotly_chart(ft, use_container_width=True)
 
@@ -283,8 +292,8 @@ For every characteristic and period the app keeps the newest publication's figur
 in spelling or case are merged. Diagnoses are kept by year only, to keep the database small.
 
 **Checks run before the database is built.** No duplicate rows; monthly attendances add up to each year's
-published total; published 12 hour counts and percentages agree; percentages lie between 0 and 100; trust
-totals add up to England's.
+published total; published 12 hour counts and percentages agree; percentages lie between 0 and 100; rates per
+100,000 match attendances divided by population; trust totals add up to England's.
 
 **Things to know.**
 - ECDS figures are published as experimental and come from provider submissions.
@@ -292,6 +301,9 @@ totals add up to England's.
 - Trust waiting times for 2023-24 cover 94% of England's attendances (99.7% in 2024-25).
 - Counts of 1 to 7 are suppressed in trust files and are not stored.
 - Ethnicity is 'Not stated' or 'Unknown' for a large share of attendances.
+- NHS England's 2025-26 file gives age-group rates per 100,000 that do not match its own counts. Earlier
+  years therefore use the 2024-25 publication, and 2025-26 age rates are recalculated from attendances and
+  population.
 """)
     g1, g2 = st.columns(2)
     g1.markdown("**Characteristics**")

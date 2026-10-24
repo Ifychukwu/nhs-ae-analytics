@@ -158,6 +158,9 @@ def category_name(raw, dimension: str):
         return "Total"
     if dimension in ("IMD decile",):
         return c[0].upper() + c[1:].lower()
+    if dimension == "Age":
+        # '01-04' and '1-4' are the same band in different publications.
+        return re.sub(r"\b0(\d)\b", r"\1", c)
     return c
 
 
@@ -215,27 +218,84 @@ def harmonise_categories(df: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
+def _inconsistent_rate_groups(df: pd.DataFrame, tolerance: float = 0.01) -> set[tuple]:
+    """(publication, dimension, period_type, period) groups whose published
+    rate per 100,000 disagrees with attendances / population by more than 1%."""
+    keys = ["publication", "dimension", "period_type", "period", "category"]
+    sub = df[df["measure"].isin(["attendances", "population", "rate_per_100k"])]
+    if sub.empty:
+        return set()
+    w = sub.pivot_table(index=keys, columns="measure", values="value", aggfunc="first").dropna()
+    if not {"attendances", "population", "rate_per_100k"} <= set(w.columns):
+        return set()
+    calc = 1e5 * w["attendances"] / w["population"]
+    bad = (w["rate_per_100k"] / calc - 1).abs() > tolerance
+    return {k[:4] for k in w.index[bad]}
+
+
 def combine_publications(frames: list[pd.DataFrame]) -> pd.DataFrame:
     """Keep, for each dimension and period, only the newest publication's rows.
 
     Later publications revise earlier figures and sometimes relabel categories,
     so mixing two publications inside one period would double count.
+
+    Exception: a publication whose rates per 100,000 do not match its own
+    attendances and population (the 2025-26 file's Age rows) is passed over
+    for an older, consistent one. Where no consistent publication exists, the
+    rate is recalculated from attendances and population. What was done is
+    listed in ``result.attrs["notes"]``.
     """
     all_rows = pd.concat(frames, ignore_index=True)
     all_rows.loc[all_rows["dimension"].isin(NO_CATEGORY), "category"] = None
     all_rows = harmonise_categories(all_rows)
     order = {p: i for i, p in enumerate(sorted(all_rows["publication"].unique()))}
     all_rows["_rank"] = all_rows["publication"].map(order)
-    newest = all_rows.groupby(["dimension", "period_type", "period"])["_rank"].transform("max")
-    out = all_rows[all_rows["_rank"] == newest].drop(columns="_rank")
-    out = out.dropna(subset=["value"])
+
+    group = ["dimension", "period_type", "period"]
+    bad = _inconsistent_rate_groups(all_rows)
+    is_bad = pd.Series([tuple(k) in bad for k in all_rows[["publication"] + group].itertuples(index=False)],
+                       index=all_rows.index)
+    good_rank = all_rows["_rank"].where(~is_bad)
+    has_good = good_rank.groupby([all_rows[g] for g in group]).transform("max")
+    newest = all_rows.groupby(group)["_rank"].transform("max")
+    chosen = has_good.fillna(newest)
+    out = all_rows[all_rows["_rank"] == chosen].copy()
+
+    notes = []
+    replaced = sorted({(p, d, per) for (p, d, pt, per) in bad}
+                      - {(p, d, per) for p, d, per in out[["publication", "dimension", "period"]]
+                         .drop_duplicates().itertuples(index=False)})
+    if replaced:
+        notes.append(f"Used an older publication for {len(replaced)} dimension-periods whose newest rates "
+                     f"did not match their counts (e.g. {replaced[0][1]} {replaced[0][2]} in {replaced[0][0]}).")
+
+    # Recalculate rates that are still inconsistent (no consistent publication).
+    still = _inconsistent_rate_groups(out.drop(columns="_rank"))
+    if still:
+        keys = ["dimension", "period_type", "period", "category"]
+        w = out.pivot_table(index=keys, columns="measure", values="value", aggfunc="first")
+        rate = (1e5 * w["attendances"] / w["population"]).round(0).rename("new_rate").reset_index()
+        flag = pd.Series([(p, d, pt, per) in still for p, d, pt, per in
+                          out[["publication", "dimension", "period_type", "period"]].itertuples(index=False)],
+                         index=out.index)
+        target = flag & (out["measure"] == "rate_per_100k")
+        merged = out.loc[target, keys].merge(rate, on=keys, how="left")
+        out.loc[target, "value"] = merged["new_rate"].to_numpy()
+        periods = sorted({(d, per) for _, d, _, per in still})
+        notes.append(f"Recalculated rate per 100,000 from attendances and population for {len(periods)} "
+                     f"dimension-periods where the published rate did not match ({periods[0][0]}, "
+                     f"{periods[0][1]} to {periods[-1][1]}).")
+
+    out = out.drop(columns="_rank").dropna(subset=["value"])
     out = out[out["period_type"] != "other"]
     # Diagnoses are kept by year only: monthly diagnosis rows are 75% of the
     # data but rarely needed, and dropping them keeps the database small.
     diag = out["dimension"].isin(["First diagnosis", "Secondary diagnosis"]) & (out["period_type"] == "month")
     out = out[~diag]
-    return out.drop_duplicates(["dimension", "period_type", "period", "category", "measure"], keep="last") \
-              .reset_index(drop=True)
+    out = out.drop_duplicates(["dimension", "period_type", "period", "category", "measure"], keep="last") \
+             .reset_index(drop=True)
+    out.attrs["notes"] = notes
+    return out
 
 
 # --------------------------------------------------------------------------
@@ -257,7 +317,7 @@ def normalise_provider_file(path: Path) -> pd.DataFrame:
         "org_code": tidy_text(raw["ORG_CODE"]),
         "org_name": tidy_text(raw["ORG_DESCRIPTION"]).str.title()
                     .str.replace("Nhs", "NHS", regex=False).str.replace(" And ", " and ", regex=False)
-                    .str.replace(" Of ", " of ", regex=False),
+                    .str.replace(" Of ", " of ", regex=False).str.replace("'S", "'s", regex=False),
         "dimension": dim_raw.map(dimension_name),
         "raw_category": cat_raw,
         "value": to_number(raw["MEASURE_VALUE"]),

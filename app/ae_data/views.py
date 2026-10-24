@@ -51,13 +51,31 @@ def has_months(con, dimension: str) -> bool:
     return int(df["n"].iloc[0]) > 0
 
 
-def breakdown(con, dimension: str, measure: str, year: str, top: int = 20, search: str = "") -> pd.DataFrame:
-    return run_select("""
+def breakdown(con, dimension: str, measure: str, year: str, top: int = 20, search: str = "",
+              include_unrecorded: bool = False) -> pd.DataFrame:
+    """Top categories for one year. Records coded 'Not submitted' or 'Invalid'
+    are data-quality codes rather than clinical categories, so they are left
+    out unless asked for."""
+    unrecorded = "" if include_unrecorded else \
+        "AND lower(category) NOT LIKE 'not submitted%' AND lower(category) NOT LIKE 'invalid%'"
+    return run_select(f"""
         SELECT category, value FROM national
         WHERE dimension = ? AND measure = ? AND period_type = 'year' AND period = ?
-          AND category IS NOT NULL AND category <> 'Total' AND lower(category) LIKE ?
+          AND category IS NOT NULL AND category <> 'Total' AND lower(category) LIKE ? {unrecorded}
         ORDER BY value DESC LIMIT ?""", con,
                       params=(dimension, measure, year, f"%{search.lower()}%", int(top)))
+
+
+def unrecorded_share(con, dimension: str, year: str) -> float | None:
+    """Share of the year's attendances coded 'Not submitted' or 'Invalid'."""
+    df = run_select("""
+        SELECT SUM(CASE WHEN lower(category) LIKE 'not submitted%' OR lower(category) LIKE 'invalid%'
+                        THEN value END) AS bad,
+               SUM(CASE WHEN category <> 'Total' THEN value END) AS total
+        FROM national WHERE dimension = ? AND measure = 'attendances' AND period_type = 'year' AND period = ?""",
+                    con, params=(dimension, year))
+    bad, total = df["bad"].iloc[0], df["total"].iloc[0]
+    return None if not bad or not total else 100 * bad / total
 
 
 def trend(con, dimension: str, measure: str, categories: list[str], by: str = "year") -> pd.DataFrame:

@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>A&amp;E in England, 2020 to 2026</title>
+<meta name="description" content="An independent analysis of NHS England's public A&E data: six years of attendances, waiting times, deprivation and trust performance.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one 72rem column; a quiet ledger look, figures set in mono, one teal accent and a clinical red for breaches. */
+:root {
+  --bg: #f6f7f6; --panel: #ffffff; --fg: #17201d; --muted: #5b6662; --line: #dde2df; --grid: #eceff0;
+  --accent: #0f7a6c; --accent-soft: #cfe7e2; --warn: #b8571b; --bad: #b42335; --good: #1d7a3c; --neutral: #9aa5a1;
+  --display: "Fraunces", Georgia, "Times New Roman", serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #111615; --panel: #182020; --fg: #e6ece9; --muted: #9aa7a2; --line: #2a3533; --grid: #222c2a;
+  --accent: #4fc2ad; --accent-soft: #1f3d38; --warn: #e3935c; --bad: #ef6b7c; --good: #6fcf8a; --neutral: #6c7975;
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #111615; --panel: #182020; --fg: #e6ece9; --muted: #9aa7a2; --line: #2a3533; --grid: #222c2a;
+  --accent: #4fc2ad; --accent-soft: #1f3d38; --warn: #e3935c; --bad: #ef6b7c; --good: #6fcf8a; --neutral: #6c7975;
+  color-scheme: dark; }
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--fg); font: 16px/1.55 var(--body); }
+.wrap { max-width: 72rem; margin-inline: auto; padding-block: 2.5rem 4rem;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 3rem; }
+header { display: grid; gap: .75rem; }
+.kicker { font: 500 .75rem/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+h1 { font: 600 clamp(2rem, 4.5vw, 3.1rem)/1.08 var(--display); margin: 0; text-wrap: balance; letter-spacing: -.01em; }
+h2 { font: 600 1.45rem/1.2 var(--display); margin: 0; text-wrap: balance; }
+h3 { font: 600 1rem/1.3 var(--body); margin: 0; }
+p { margin: 0; max-width: 68ch; }
+.lead { font-size: 1.12rem; }
+.muted { color: var(--muted); font-size: .88rem; }
+a { color: var(--accent); text-underline-offset: 3px; }
+a:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.links { display: flex; flex-wrap: wrap; gap: .5rem 1.25rem; font-size: .92rem; }
+
+.tiles { display: grid; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr)); }
+.tile { background: var(--panel); padding: 1.1rem 1.25rem; display: grid; gap: .3rem; align-content: start; }
+.tile .label { font-size: .85rem; color: var(--muted); }
+.tile .num { font: 500 2rem/1.1 var(--mono); font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.delta { font: 500 .8rem/1.3 var(--mono); }
+.good { color: var(--good); } .bad { color: var(--bad); } .flat { color: var(--muted); }
+
+section { display: grid; gap: 1.1rem; }
+.sec-head { display: grid; gap: .4rem; }
+.grid2 { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 26rem), 1fr)); }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 1.15rem 1.25rem; display: grid; gap: .7rem; min-width: 0; align-content: start; }
+.chart { position: relative; min-width: 0; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart text { fill: var(--muted); font: 11px var(--mono); }
+.chart .lbl { fill: var(--fg); font: 500 11px var(--mono); }
+.tip { position: absolute; pointer-events: none; background: var(--panel); border: 1px solid var(--line); border-radius: 6px;
+  box-shadow: 0 6px 18px rgb(0 0 0 / .12); padding: .35rem .55rem; font: 12px/1.4 var(--mono); white-space: nowrap; z-index: 3; }
+.tip b { font-weight: 500; color: var(--fg); } .tip span { color: var(--muted); }
+.legend { display: flex; flex-wrap: wrap; gap: .4rem 1rem; font-size: .82rem; color: var(--muted); }
+.legend i { display: inline-block; width: .7rem; height: .7rem; border-radius: 50%; margin-right: .35rem; vertical-align: -1px; }
+.legend i.ln { width: 1rem; height: 2px; border-radius: 1px; vertical-align: 3px; }
+
+.tools { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; }
+input[type=search] { font: inherit; font-size: .9rem; padding: .45rem .7rem; border: 1px solid var(--line); border-radius: 6px;
+  background: var(--bg); color: var(--fg); width: min(100%, 22rem); }
+.tablewrap { max-height: 30rem; overflow: auto; border: 1px solid var(--line); border-radius: 8px; }
+table { width: 100%; border-collapse: collapse; font-size: .86rem; }
+th, td { padding: .45rem .7rem; border-bottom: 1px solid var(--grid); text-align: right; }
+th:first-child, td:first-child { text-align: left; }
+td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+thead th { position: sticky; top: 0; background: var(--panel); z-index: 1; font-weight: 600; border-bottom: 1px solid var(--line); }
+th button { all: unset; cursor: pointer; } th[aria-sort=ascending] button::after { content: " ↑"; } th[aria-sort=descending] button::after { content: " ↓"; }
+tr.hl td { background: var(--accent-soft); }
+.bar { display: inline-block; height: .5rem; border-radius: 3px; background: var(--bad); vertical-align: middle; margin-right: .4rem; opacity: .85; }
+.pill { display: inline-block; padding: .05rem .5rem; border-radius: 999px; border: 1px solid currentColor; font: 500 .75rem/1.5 var(--mono); }
+.callout { border-left: 3px solid var(--accent); padding: .2rem 0 .2rem 1rem; }
+@media (max-width: 640px) { .hide-narrow { display: none; } }
+footer { border-top: 1px solid var(--line); padding-top: 1.25rem; display: grid; gap: .5rem; }
+@media (prefers-reduced-motion: no-preference) { .draw { stroke-dasharray: var(--len); stroke-dashoffset: var(--len); animation: draw 1.2s ease-out forwards; } }
+@keyframes draw { to { stroke-dashoffset: 0; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="kicker">Emergency departments · England · April 2020 to March 2026</div>
+    <h1>A&amp;E in England, 2020 to 2026</h1>
+    <p class="lead" id="lead"></p>
+    <div class="links">
+      <a id="link-app" href="#">Explore the data in the live app</a>
+      <a href="https://github.com/Ifychukwu/nhs-ae-analytics">Code on GitHub</a>
+      <a href="https://digital.nhs.uk/data-and-information/publications/statistical/hospital-accident--emergency-activity">Source data (NHS England)</a>
+    </div>
+  </header>
+
+  <div class="tiles" id="tiles" aria-label="Headline figures"></div>
+
+  <section aria-labelledby="h-demand">
+    <div class="sec-head">
+      <h2 id="h-demand">Demand keeps rising, and waits have only partly recovered</h2>
+      <p class="muted" id="demand-note"></p>
+    </div>
+    <div class="card">
+      <h3>A&amp;E attendances per month</h3>
+      <div class="chart" id="c-monthly"></div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <h3>Seen within 4 hours</h3>
+        <p class="muted">Arrival to departure, all A&amp;E types. Excludes sites piloting new standards.</p>
+        <div class="chart" id="c-4h"></div>
+      </div>
+      <div class="card">
+        <h3>Spent more than 12 hours in A&amp;E</h3>
+        <p class="muted">Share of all attendances.</p>
+        <div class="chart" id="c-12h"></div>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-who">
+    <div class="sec-head">
+      <h2 id="h-who">The most deprived areas use A&amp;E almost twice as much</h2>
+      <p class="muted" id="who-note"></p>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <h3>Attendances per 100,000 people</h3>
+        <div class="legend" id="imd-legend"></div>
+        <div class="chart" id="c-imd"></div>
+      </div>
+      <div class="card">
+        <h3 id="age-title">Attendances per 100,000 people, by age</h3>
+        <div class="chart" id="c-age"></div>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-trusts">
+    <div class="sec-head">
+      <h2 id="h-trusts">12 hour stays vary widely between trusts</h2>
+      <p class="muted" id="trust-note"></p>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <h3>4 hour performance against 12 hour stays</h3>
+        <p class="muted">Each dot is a trust with a major A&amp;E. Dashed lines show England.</p>
+        <div class="chart" id="c-scatter"></div>
+      </div>
+      <div class="card">
+        <h3>Every trust with a major A&amp;E</h3>
+        <div class="tools"><input type="search" id="q" placeholder="Search for a trust" aria-label="Search for a trust"></div>
+        <div class="tablewrap">
+          <table id="tbl">
+            <thead><tr>
+              <th><button data-k="org_name">Trust</button></th>
+              <th class="hide-narrow"><button data-k="attendances">Attendances</button></th>
+              <th><button data-k="pct_within_4h">Within 4h</button></th>
+              <th aria-sort="descending"><button data-k="pct_over_12h">Over 12h</button></th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-autumn">
+    <div class="sec-head">
+      <h2 id="h-autumn">Autumn 2026: pressure building before winter</h2>
+      <p class="muted">From the monthly A&amp;E situation reports (MSitAE) and ECDS performance files, July to September 2026.</p>
+    </div>
+    <div class="card callout" id="autumn"></div>
+  </section>
+
+  <footer>
+    <p class="muted">An independent analysis of public data, not an NHS England product. Source: NHS England,
+      <a href="https://digital.nhs.uk/data-and-information/publications/statistical/hospital-accident--emergency-activity">Hospital Accident &amp; Emergency Activity</a> (ECDS open data and provider level analysis) and
+      <a href="https://www.england.nhs.uk/statistics/statistical-work-areas/ae-waiting-times-and-activity/">A&amp;E Attendances and Emergency Admissions</a>. Open Government Licence v3.0.
+      ECDS figures are published as experimental.</p>
+  </footer>
+</div>
+
+<script>
+const D = {"headline":[{"financial_year":"2020-21","attendances":16153448.0,"pct_within_4h":84.2,"pct_over_12h":1.87,"over_12h":302784.0,"pct_admitted":17.81},{"financial_year":"2021-22","attendances":22615094.0,"pct_within_4h":73.01,"pct_over_12h":4.39,"over_12h":992161.0,"pct_admitted":15.28},{"financial_year":"2022-23","attendances":23269548.0,"pct_within_4h":66.45,"pct_over_12h":7.69,"over_12h":1789130.0,"pct_admitted":14.96},{"financial_year":"2023-24","attendances":24664177.0,"pct_within_4h":68.99,"pct_over_12h":7.13,"over_12h":1758157.0,"pct_admitted":15.28},{"financial_year":"2024-25","attendances":25822265.0,"pct_within_4h":70.92,"pct_over_12h":7.28,"over_12h":1880272.0,"pct_admitted":15.06},{"financial_year":"2025-26","attendances":26639584.0,"pct_within_4h":72.53,"pct_over_12h":6.89,"over_12h":1835378.0,"pct_admitted":14.26}],"monthly":[{"month":"2020-04","attendances":870864.0,"pct_admitted":20.8},{"month":"2020-05","attendances":1201817.0,"pct_admitted":18.22},{"month":"2020-06","attendances":1329404.0,"pct_admitted":17.47},{"month":"2020-07","attendances":1493859.0,"pct_admitted":16.79},{"month":"2020-08","attendances":1598142.0,"pct_admitted":16.03},{"month":"2020-09","attendances":1573840.0,"pct_admitted":16.17},{"month":"2020-10","attendances":1479813.0,"pct_admitted":17.25},{"month":"2020-11","attendances":1367910.0,"pct_admitted":17.82},{"month":"2020-12","attendances":1369153.0,"pct_admitted":18.3},{"month":"2021-01","attendances":1215320.0,"pct_admitted":20.43},{"month":"2021-02","attendances":1150625.0,"pct_admitted":19.41},{"month":"2021-03","attendances":1502701.0,"pct_admitted":17.41},{"month":"2021-04","attendances":1748965.0,"pct_admitted":16.05},{"month":"2021-05","attendances":1941969.0,"pct_admitted":15.63},{"month":"2021-06","attendances":2029842.0,"pct_admitted":14.66},{"month":"2021-07","attendances":2031203.0,"pct_admitted":15.03},{"month":"2021-08","attendances":1905985.0,"pct_admitted":15.23},{"month":"2021-09","attendances":1966126.0,"pct_admitted":14.59},{"month":"2021-10","attendances":1997732.0,"pct_admitted":14.99},{"month":"2021-11","attendances":1864485.0,"pct_admitted":15.21},{"month":"2021-12","attendances":1729460.0,"pct_admitted":16.43},{"month":"2022-01","attendances":1721307.0,"pct_admitted":16.07},{"month":"2022-02","attendances":1682224.0,"pct_admitted":15.46},{"month":"2022-03","attendances":1995796.0,"pct_admitted":14.44},{"month":"2022-04","attendances":1866217.0,"pct_admitted":15.09},{"month":"2022-05","attendances":2046233.0,"pct_admitted":14.52},{"month":"2022-06","attendances":2010931.0,"pct_admitted":14.46},{"month":"2022-07","attendances":2013086.0,"pct_admitted":14.35},{"month":"2022-08","attendances":1797921.0,"pct_admitted":15.58},{"month":"2022-09","attendances":1826820.0,"pct_admitted":15.44},{"month":"2022-10","attendances":1987152.0,"pct_admitted":14.74},{"month":"2022-11","attendances":1984959.0,"pct_admitted":14.96},{"month":"2022-12","attendances":2132272.0,"pct_admitted":14.49},{"month":"2023-01","attendances":1820114.0,"pct_admitted":15.92},{"month":"2023-02","attendances":1773394.0,"pct_admitted":15.16},{"month":"2023-03","attendances":2010449.0,"pct_admitted":15.03},{"month":"2023-04","attendances":1885017.0,"pct_admitted":15.33},{"month":"2023-05","attendances":2088674.0,"pct_admitted":14.75},{"month":"2023-06","attendances":2073568.0,"pct_admitted":14.45},{"month":"2023-07","attendances":2075664.0,"pct_admitted":15.01},{"month":"2023-08","attendances":1988432.0,"pct_admitted":15.21},{"month":"2023-09","attendances":2044316.0,"pct_admitted":14.96},{"month":"2023-10","attendances":2096737.0,"pct_admitted":15.34},{"month":"2023-11","attendances":2042867.0,"pct_admitted":15.59},{"month":"2023-12","attendances":2061241.0,"pct_admitted":16.14},{"month":"2024-01","attendances":2085041.0,"pct_admitted":15.82},{"month":"2024-02","attendances":2017295.0,"pct_admitted":15.35},{"month":"2024-03","attendances":2205325.0,"pct_admitted":15.39},{"month":"2024-04","attendances":2110720.0,"pct_admitted":15.34},{"month":"2024-05","attendances":2279383.0,"pct_admitted":14.71},{"month":"2024-06","attendances":2162053.0,"pct_admitted":14.82},{"month":"2024-07","attendances":2188961.0,"pct_admitted":15.04},{"month":"2024-08","attendances":2032350.0,"pct_admitted":15.58},{"month":"2024-09","attendances":2092613.0,"pct_admitted":15.3},{"month":"2024-10","attendances":2227639.0,"pct_admitted":15.3},{"month":"2024-11","attendances":2198603.0,"pct_admitted":15.19},{"month":"2024-12","attendances":2212410.0,"pct_admitted":15.26},{"month":"2025-01","attendances":2092832.0,"pct_admitted":15.47},{"month":"2025-02","attendances":1966219.0,"pct_admitted":14.72},{"month":"2025-03","attendances":2258408.0,"pct_admitted":14.04},{"month":"2025-04","attendances":2176064.0,"pct_admitted":14.46},{"month":"2025-05","attendances":2276120.0,"pct_admitted":14.28},{"month":"2025-06","attendances":2241392.0,"pct_admitted":14.1},{"month":"2025-07","attendances":2287647.0,"pct_admitted":14.31},{"month":"2025-08","attendances":2152398.0,"pct_admitted":14.69},{"month":"2025-09","attendances":2201043.0,"pct_admitted":14.37},{"month":"2025-10","attendances":2299514.0,"pct_admitted":14.23},{"month":"2025-11","attendances":2237760.0,"pct_admitted":14.09},{"month":"2025-12","attendances":2208128.0,"pct_admitted":14.58},{"month":"2026-01","attendances":2212576.0,"pct_admitted":14.32},{"month":"2026-02","attendances":2019769.0,"pct_admitted":13.96},{"month":"2026-03","attendances":2327173.0,"pct_admitted":13.69}],"imd":[{"year":"2020-21","least":20749.0,"most":38971.0},{"year":"2021-22","least":28521.0,"most":53752.0},{"year":"2022-23","least":28848.0,"most":55314.0},{"year":"2023-24","least":30765.0,"most":58264.0},{"year":"2024-25","least":32622.0,"most":61771.0},{"year":"2025-26","least":33667.0,"most":62284.0}],"age":[{"age":"0","rate":130097.0},{"age":"1-4","rate":73093.0},{"age":"5-9","rate":37978.0},{"age":"10-14","rate":39299.0},{"age":"15","rate":40287.0},{"age":"16","rate":36760.0},{"age":"17","rate":39727.0},{"age":"18","rate":48315.0},{"age":"19","rate":52318.0},{"age":"20-24","rate":47646.0},{"age":"25-29","rate":45064.0},{"age":"30-34","rate":43174.0},{"age":"35-39","rate":41086.0},{"age":"40-44","rate":38677.0},{"age":"45-49","rate":37444.0},{"age":"50-54","rate":36628.0},{"age":"55-59","rate":36667.0},{"age":"60-64","rate":38048.0},{"age":"65-69","rate":40060.0},{"age":"70-74","rate":43584.0},{"age":"75-79","rate":52246.0},{"age":"80-84","rate":67131.0},{"age":"85-89","rate":84397.0},{"age":"90+","rate":96319.0}],"trust_year":"2024-25","trusts":[{"org_code":"RXL","org_name":"Blackpool Teaching Hospitals NHS Foundation Trust","attendances":80515.0,"pct_within_4h":39.1,"pct_over_12h":26.4},{"org_code":"REM","org_name":"Liverpool University Hospitals NHS Foundation Trust","attendances":272775.0,"pct_within_4h":51.4,"pct_over_12h":21.7},{"org_code":"RBL","org_name":"Wirral University Teaching Hospital NHS Foundation Trust","attendances":90920.0,"pct_within_4h":45.0,"pct_over_12h":21.2},{"org_code":"RXW","org_name":"The Shrewsbury and Telford Hospital NHS Trust","attendances":153255.0,"pct_within_4h":46.7,"pct_over_12h":19.6},{"org_code":"RJR","org_name":"Countess of Chester Hospital NHS Foundation Trust","attendances":86235.0,"pct_within_4h":59.6,"pct_over_12h":18.4},{"org_code":"RF4","org_name":"Barking, Havering and Redbridge University Hospitals NHS Trust","attendances":182575.0,"pct_within_4h":60.5,"pct_over_12h":17.4},{"org_code":"RLQ","org_name":"Wye Valley NHS Trust","attendances":73585.0,"pct_within_4h":56.9,"pct_over_12h":14.9},{"org_code":"RBN","org_name":"Mersey and West Lancashire Teaching Hospitals NHS Trust","attendances":256335.0,"pct_within_4h":68.7,"pct_over_12h":14.4},{"org_code":"RWW","org_name":"Warrington and Halton Teaching Hospitals NHS Foundation Trust","attendances":122105.0,"pct_within_4h":63.1,"pct_over_12h":14.3},{"org_code":"RRK","org_name":"University Hospitals Birmingham NHS Foundation Trust","attendances":426785.0,"pct_within_4h":60.9,"pct_over_12h":14.3},{"org_code":"RWD","org_name":"United Lincolnshire Teaching Hospitals NHS Trust","attendances":166355.0,"pct_within_4h":51.0,"pct_over_12h":14.3},{"org_code":"RJN","org_name":"East Cheshire NHS Trust","attendances":50850.0,"pct_within_4h":51.1,"pct_over_12h":14.0},{"org_code":"RNQ","org_name":"Kettering General Hospital NHS Foundation Trust","attendances":119590.0,"pct_within_4h":63.8,"pct_over_12h":13.8},{"org_code":"R1H","org_name":"Barts Health NHS Trust","attendances":362620.0,"pct_within_4h":55.9,"pct_over_12h":13.5},{"org_code":"RXP","org_name":"County Durham and Darlington NHS Foundation Trust","attendances":170085.0,"pct_within_4h":61.6,"pct_over_12h":13.5},{"org_code":"RWA","org_name":"Hull University Teaching Hospitals NHS Trust","attendances":127785.0,"pct_within_4h":51.0,"pct_over_12h":13.1},{"org_code":"RCX","org_name":"The Queen Elizabeth Hospital, King's Lynn, NHS Foundation Trust","attendances":79480.0,"pct_within_4h":59.9,"pct_over_12h":12.7},{"org_code":"RCB","org_name":"York and Scarborough Teaching Hospitals NHS Foundation Trust","attendances":201755.0,"pct_within_4h":61.1,"pct_over_12h":12.2},{"org_code":"RWP","org_name":"Worcestershire Acute Hospitals NHS Trust","attendances":224635.0,"pct_within_4h":63.8,"pct_over_12h":12.2},{"org_code":"RNS","org_name":"Northampton General Hospital NHS Trust","attendances":169755.0,"pct_within_4h":70.8,"pct_over_12h":12.1},{"org_code":"RTP","org_name":"Surrey and Sussex Healthcare NHS Trust","attendances":124880.0,"pct_within_4h":65.7,"pct_over_12h":11.9},{"org_code":"RQW","org_name":"The Princess Alexandra Hospital NHS Trust","attendances":119645.0,"pct_within_4h":58.1,"pct_over_12h":11.8},{"org_code":"RBT","org_name":"Mid Cheshire Hospitals NHS Foundation Trust","attendances":130315.0,"pct_within_4h":62.7,"pct_over_12h":11.7},{"org_code":"RTE","org_name":"Gloucestershire Hospitals NHS Foundation Trust","attendances":155385.0,"pct_within_4h":60.8,"pct_over_12h":11.7},{"org_code":"RRF","org_name":"Wrightington, Wigan and Leigh NHS Foundation Trust","attendances":147825.0,"pct_within_4h":70.5,"pct_over_12h":11.7},{"org_code":"RWE","org_name":"University Hospitals of Leicester NHS Trust","attendances":283110.0,"pct_within_4h":60.2,"pct_over_12h":11.4},{"org_code":"RHU","org_name":"Portsmouth Hospitals University NHS Trust","attendances":189450.0,"pct_within_4h":63.4,"pct_over_12h":11.3},{"org_code":"RVR","org_name":"Epsom and St Helier University Hospitals NHS Trust","attendances":158385.0,"pct_within_4h":75.2,"pct_over_12h":10.9},{"org_code":"RX1","org_name":"Nottingham University Hospitals NHS Trust","attendances":216800.0,"pct_within_4h":55.1,"pct_over_12h":10.8},{"org_code":"RWJ","org_name":"Stockport NHS Foundation Trust","attendances":110465.0,"pct_within_4h":63.3,"pct_over_12h":10.8},{"org_code":"RTG","org_name":"University Hospitals of Derby and Burton NHS Foundation Trust","attendances":309075.0,"pct_within_4h":64.3,"pct_over_12h":10.7},{"org_code":"RK9","org_name":"University Hospitals Plymouth NHS Trust","attendances":167210.0,"pct_within_4h":64.3,"pct_over_12h":10.7},{"org_code":"RXN","org_name":"Lancashire Teaching Hospitals NHS Foundation Trust","attendances":178955.0,"pct_within_4h":67.6,"pct_over_12h":10.6},{"org_code":"RJ2","org_name":"Lewisham and Greenwich NHS Trust","attendances":234505.0,"pct_within_4h":57.6,"pct_over_12h":10.5},{"org_code":"RM3","org_name":"Northern Care Alliance NHS Foundation Trust","attendances":374435.0,"pct_within_4h":62.1,"pct_over_12h":10.5},{"org_code":"RNA","org_name":"The Dudley Group NHS Foundation Trust","attendances":111365.0,"pct_within_4h":71.7,"pct_over_12h":10.4},{"org_code":"RMC","org_name":"Bolton NHS Foundation Trust","attendances":138800.0,"pct_within_4h":64.2,"pct_over_12h":10.2},{"org_code":"RTK","org_name":"Ashford and St Peter's Hospitals NHS Foundation Trust","attendances":119425.0,"pct_within_4h":66.6,"pct_over_12h":10.2},{"org_code":"RDU","org_name":"Frimley Health NHS Foundation Trust","attendances":284000.0,"pct_within_4h":59.4,"pct_over_12h":10.1},{"org_code":"R1F","org_name":"Isle of Wight NHS Trust","attendances":58780.0,"pct_within_4h":62.4,"pct_over_12h":10.0},{"org_code":"RKB","org_name":"University Hospitals Coventry and Warwickshire NHS Trust","attendances":234145.0,"pct_within_4h":68.4,"pct_over_12h":10.0},{"org_code":"RVV","org_name":"East Kent Hospitals University NHS Foundation Trust","attendances":305815.0,"pct_within_4h":74.9,"pct_over_12h":9.8},{"org_code":"RJL","org_name":"Northern Lincolnshire and Goole NHS Foundation Trust","attendances":187425.0,"pct_within_4h":71.0,"pct_over_12h":9.7},{"org_code":"RLT","org_name":"George Eliot Hospital NHS Trust","attendances":102745.0,"pct_within_4h":72.3,"pct_over_12h":9.7},{"org_code":"RJZ","org_name":"King's College Hospital NHS Foundation Trust","attendances":282270.0,"pct_within_4h":66.6,"pct_over_12h":9.6},{"org_code":"RYR","org_name":"University Hospitals Sussex NHS Foundation Trust","attendances":370555.0,"pct_within_4h":64.8,"pct_over_12h":9.6},{"org_code":"RXR","org_name":"East Lancashire Hospitals NHS Trust","attendances":274350.0,"pct_within_4h":78.1,"pct_over_12h":9.6},{"org_code":"RJE","org_name":"University Hospitals of North Midlands NHS Trust","attendances":278175.0,"pct_within_4h":67.5,"pct_over_12h":9.4},{"org_code":"RNN","org_name":"North Cumbria Integrated Care NHS Foundation Trust","attendances":132325.0,"pct_within_4h":62.7,"pct_over_12h":9.3},{"org_code":"RGR","org_name":"West Suffolk NHS Foundation Trust","attendances":101380.0,"pct_within_4h":68.9,"pct_over_12h":9.3},{"org_code":"RAJ","org_name":"Mid and South Essex NHS Foundation Trust","attendances":408040.0,"pct_within_4h":64.2,"pct_over_12h":9.2},{"org_code":"RGP","org_name":"James Paget University Hospitals NHS Foundation Trust","attendances":87635.0,"pct_within_4h":57.7,"pct_over_12h":9.2},{"org_code":"RPA","org_name":"Medway NHS Foundation Trust","attendances":152780.0,"pct_within_4h":72.8,"pct_over_12h":9.2},{"org_code":"RXF","org_name":"Mid Yorkshire Teaching NHS Trust","attendances":270410.0,"pct_within_4h":68.1,"pct_over_12h":9.1},{"org_code":"RAP","org_name":"North Middlesex University Hospital NHS Trust","attendances":143505.0,"pct_within_4h":66.1,"pct_over_12h":9.0},{"org_code":"RGN","org_name":"North West Anglia NHS Foundation Trust","attendances":236190.0,"pct_within_4h":68.0,"pct_over_12h":8.9},{"org_code":"RAL","org_name":"Royal Free London NHS Foundation Trust","attendances":356085.0,"pct_within_4h":73.8,"pct_over_12h":8.7},{"org_code":"RVJ","org_name":"North Bristol NHS Trust","attendances":105835.0,"pct_within_4h":56.7,"pct_over_12h":8.7},{"org_code":"RJ7","org_name":"St George's University Hospitals NHS Foundation Trust","attendances":152425.0,"pct_within_4h":77.5,"pct_over_12h":8.5},{"org_code":"RR8","org_name":"Leeds Teaching Hospitals NHS Trust","attendances":233075.0,"pct_within_4h":62.7,"pct_over_12h":8.0},{"org_code":"RGT","org_name":"Cambridge University Hospitals NHS Foundation Trust","attendances":201505.0,"pct_within_4h":68.6,"pct_over_12h":7.8},{"org_code":"RJ6","org_name":"Croydon Health Services NHS Trust","attendances":211300.0,"pct_within_4h":73.3,"pct_over_12h":7.8},{"org_code":"RXK","org_name":"Sandwell and West Birmingham Hospitals NHS Trust","attendances":284795.0,"pct_within_4h":65.1,"pct_over_12h":7.6},{"org_code":"RCF","org_name":"Airedale NHS Foundation Trust","attendances":75635.0,"pct_within_4h":62.0,"pct_over_12h":7.6},{"org_code":"RMP","org_name":"Tameside and Glossop Integrated Care NHS Foundation Trust","attendances":142135.0,"pct_within_4h":66.0,"pct_over_12h":7.5},{"org_code":"RA9","org_name":"Torbay and South Devon NHS Foundation Trust","attendances":121405.0,"pct_within_4h":66.8,"pct_over_12h":7.5},{"org_code":"RKE","org_name":"Whittington Health NHS Trust","attendances":108620.0,"pct_within_4h":70.9,"pct_over_12h":7.3},{"org_code":"RXC","org_name":"East Sussex Healthcare NHS Trust","attendances":169190.0,"pct_within_4h":74.3,"pct_over_12h":7.1},{"org_code":"RD1","org_name":"Royal United Hospitals Bath NHS Foundation Trust","attendances":101570.0,"pct_within_4h":59.8,"pct_over_12h":7.1},{"org_code":"R1K","org_name":"London North West University Healthcare NHS Trust","attendances":340640.0,"pct_within_4h":74.9,"pct_over_12h":7.1},{"org_code":"RAS","org_name":"The Hillingdon Hospitals NHS Foundation Trust","attendances":151440.0,"pct_within_4h":68.8,"pct_over_12h":7.0},{"org_code":"RWH","org_name":"East and North Hertfordshire NHS Trust","attendances":197040.0,"pct_within_4h":69.9,"pct_over_12h":7.0},{"org_code":"RDE","org_name":"East Suffolk and North Essex NHS Foundation Trust","attendances":296420.0,"pct_within_4h":71.5,"pct_over_12h":6.9},{"org_code":"RNZ","org_name":"Salisbury NHS Foundation Trust","attendances":56700.0,"pct_within_4h":57.3,"pct_over_12h":6.7},{"org_code":"RN3","org_name":"Great Western Hospitals NHS Foundation Trust","attendances":130510.0,"pct_within_4h":74.4,"pct_over_12h":6.7},{"org_code":"RL4","org_name":"The Royal Wolverhampton NHS Trust","attendances":264120.0,"pct_within_4h":79.4,"pct_over_12h":6.3},{"org_code":"RAX","org_name":"Kingston and Richmond NHS Foundation Trust","attendances":180635.0,"pct_within_4h":61.7,"pct_over_12h":6.2},{"org_code":"RN7","org_name":"Dartford and Gravesham NHS Trust","attendances":178690.0,"pct_within_4h":75.3,"pct_over_12h":6.2},{"org_code":"RAE","org_name":"Bradford Teaching Hospitals NHS Foundation Trust","attendances":147315.0,"pct_within_4h":80.9,"pct_over_12h":6.1},{"org_code":"RD8","org_name":"Milton Keynes University Hospital NHS Foundation Trust","attendances":105360.0,"pct_within_4h":59.5,"pct_over_12h":6.1},{"org_code":"REF","org_name":"Royal Cornwall Hospitals NHS Trust","attendances":218375.0,"pct_within_4h":76.3,"pct_over_12h":5.9},{"org_code":"RWF","org_name":"Maidstone and Tunbridge Wells NHS Trust","attendances":243095.0,"pct_within_4h":82.8,"pct_over_12h":5.7},{"org_code":"R0A","org_name":"Manchester University NHS Foundation Trust","attendances":517700.0,"pct_within_4h":68.6,"pct_over_12h":5.7},{"org_code":"RTX","org_name":"University Hospitals of Morecambe Bay NHS Foundation Trust","attendances":139420.0,"pct_within_4h":73.9,"pct_over_12h":5.7},{"org_code":"RXQ","org_name":"Buckinghamshire Healthcare NHS Trust","attendances":169425.0,"pct_within_4h":70.7,"pct_over_12h":5.6},{"org_code":"RBK","org_name":"Walsall Healthcare NHS Trust","attendances":109775.0,"pct_within_4h":66.3,"pct_over_12h":5.6},{"org_code":"RN5","org_name":"Hampshire Hospitals NHS Foundation Trust","attendances":160200.0,"pct_within_4h":62.4,"pct_over_12h":5.5},{"org_code":"R0D","org_name":"University Hospitals Dorset NHS Foundation Trust","attendances":188620.0,"pct_within_4h":66.4,"pct_over_12h":5.4},{"org_code":"RQX","org_name":"Homerton Healthcare NHS Foundation Trust","attendances":131240.0,"pct_within_4h":50.2,"pct_over_12h":5.1},{"org_code":"RBD","org_name":"Dorset County Hospital NHS Foundation Trust","attendances":106695.0,"pct_within_4h":79.4,"pct_over_12h":4.9},{"org_code":"RA7","org_name":"University Hospitals Bristol and Weston NHS Foundation Trust","attendances":211000.0,"pct_within_4h":67.4,"pct_over_12h":4.8},{"org_code":"RR7","org_name":"Gateshead Health NHS Foundation Trust","attendances":113275.0,"pct_within_4h":71.7,"pct_over_12h":4.7},{"org_code":"RCD","org_name":"Harrogate and District NHS Foundation Trust","attendances":70775.0,"pct_within_4h":73.3,"pct_over_12h":4.6},{"org_code":"RFS","org_name":"Chesterfield Royal Hospital NHS Foundation Trust","attendances":106155.0,"pct_within_4h":58.5,"pct_over_12h":4.6},{"org_code":"RFR","org_name":"The Rotherham NHS Foundation Trust","attendances":104885.0,"pct_within_4h":64.3,"pct_over_12h":4.6},{"org_code":"RHQ","org_name":"Sheffield Teaching Hospitals NHS Foundation Trust","attendances":169540.0,"pct_within_4h":61.8,"pct_over_12h":4.5},{"org_code":"RTH","org_name":"Oxford University Hospitals NHS Foundation Trust","attendances":169900.0,"pct_within_4h":65.1,"pct_over_12h":4.5},{"org_code":"RM1","org_name":"Norfolk and Norwich University Hospitals NHS Foundation Trust","attendances":161695.0,"pct_within_4h":70.5,"pct_over_12h":4.3},{"org_code":"RHW","org_name":"Royal Berkshire NHS Foundation Trust","attendances":177265.0,"pct_within_4h":70.1,"pct_over_12h":4.3},{"org_code":"RWY","org_name":"Calderdale and Huddersfield NHS Foundation Trust","attendances":181510.0,"pct_within_4h":69.3,"pct_over_12h":4.2},{"org_code":"RP5","org_name":"Doncaster and Bassetlaw Teaching Hospitals NHS Foundation Trust","attendances":209840.0,"pct_within_4h":71.5,"pct_over_12h":4.1},{"org_code":"RYJ","org_name":"Imperial College Healthcare NHS Trust","attendances":278735.0,"pct_within_4h":76.5,"pct_over_12h":4.1},{"org_code":"RK5","org_name":"Sherwood Forest Hospitals NHS Foundation Trust","attendances":166740.0,"pct_within_4h":66.8,"pct_over_12h":3.8},{"org_code":"RC9","org_name":"Bedfordshire Hospitals NHS Foundation Trust","attendances":301845.0,"pct_within_4h":72.4,"pct_over_12h":3.7},{"org_code":"RWG","org_name":"West Hertfordshire Teaching Hospitals NHS Trust","attendances":196265.0,"pct_within_4h":78.0,"pct_over_12h":3.7},{"org_code":"RRV","org_name":"University College London Hospitals NHS Foundation Trust","attendances":158490.0,"pct_within_4h":71.4,"pct_over_12h":3.5},{"org_code":"RJC","org_name":"South Warwickshire University NHS Foundation Trust","attendances":103130.0,"pct_within_4h":69.7,"pct_over_12h":3.3},{"org_code":"RA2","org_name":"Royal Surrey County Hospital NHS Foundation Trust","attendances":105635.0,"pct_within_4h":77.0,"pct_over_12h":3.2},{"org_code":"RH8","org_name":"Royal Devon University Healthcare NHS Foundation Trust","attendances":212990.0,"pct_within_4h":69.8,"pct_over_12h":3.0},{"org_code":"RH5","org_name":"Somerset NHS Foundation Trust","attendances":262520.0,"pct_within_4h":74.4,"pct_over_12h":2.4},{"org_code":"R0B","org_name":"South Tyneside and Sunderland NHS Foundation Trust","attendances":245620.0,"pct_within_4h":71.3,"pct_over_12h":2.4},{"org_code":"RQM","org_name":"Chelsea and Westminster Hospital NHS Foundation Trust","attendances":313095.0,"pct_within_4h":78.1,"pct_over_12h":2.3},{"org_code":"RTR","org_name":"South Tees Hospitals NHS Foundation Trust","attendances":216515.0,"pct_within_4h":75.1,"pct_over_12h":2.2},{"org_code":"RTD","org_name":"The Newcastle Upon Tyne Hospitals NHS Foundation Trust","attendances":237905.0,"pct_within_4h":74.6,"pct_over_12h":2.1},{"org_code":"RFF","org_name":"Barnsley Hospital NHS Foundation Trust","attendances":106875.0,"pct_within_4h":67.5,"pct_over_12h":2.0},{"org_code":"RHM","org_name":"University Hospital Southampton NHS Foundation Trust","attendances":158975.0,"pct_within_4h":65.8,"pct_over_12h":2.0},{"org_code":"RJ1","org_name":"Guy's and St Thomas' NHS Foundation Trust","attendances":210950.0,"pct_within_4h":74.1,"pct_over_12h":1.0},{"org_code":"RVW","org_name":"North Tees and Hartlepool NHS Foundation Trust","attendances":193555.0,"pct_within_4h":85.2,"pct_over_12h":0.6},{"org_code":"RTF","org_name":"Northumbria Healthcare NHS Foundation Trust","attendances":263555.0,"pct_within_4h":87.6,"pct_over_12h":0.5},{"org_code":"RQ3","org_name":"Birmingham Women's and Children's NHS Foundation Trust","attendances":61345.0,"pct_within_4h":80.2,"pct_over_12h":0.5},{"org_code":"W5R9N","org_name":"Blackpool Victoria Urgent Care Centre","attendances":27980.0,"pct_within_4h":97.8,"pct_over_12h":0.2},{"org_code":"RBS","org_name":"Alder Hey Children's NHS Foundation Trust","attendances":69105.0,"pct_within_4h":82.6,"pct_over_12h":0.2},{"org_code":"RY5","org_name":"Lincolnshire Community Health Services NHS Trust","attendances":170650.0,"pct_within_4h":94.4,"pct_over_12h":0.1}],"england":{"pct_within_4h":70.8,"pct_over_12h":7.3},"autumn":{"latest_month":"September 2026","pct4_all_latest":74.4,"pct4_all_first":75.4,"pct4_t1_latest":60.6,"att_all_latest":2444743,"dta12_latest":50582,"dta12_first":47438,"model_trend_pct_per_year":0.02,"model_in_sample_mape":2.57,"backtest_mape":11.77,"level_shift_pct":11.7,"winter_forecast_total":13901005,"segments_k":3,"silhouette_by_k":{"3":0.216,"4":0.211,"5":0.207,"6":0.209},"n_segmented":116,"imd_ratio_most_to_least":1.93,"ethnicity_pct_not_recorded":17.0,"segments":{"Moderate pressure":55,"High pressure":35,"Lower pressure":26}}};
+const APP_URL = "";   // paste your Streamlit link here, e.g. "https://yourname-nhs-ae.streamlit.app"
+
+const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const fmtInt = (v) => Math.round(v).toLocaleString("en-GB");
+const fmtM = (v) => (v / 1e6).toFixed(v >= 1e7 ? 1 : 2) + "m";
+const fmtPct = (v) => v.toFixed(1) + "%";
+const NS = "http://www.w3.org/2000/svg";
+const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(NS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
+const txt = (s, attrs, parent) => { const t = el("text", attrs, parent); t.textContent = s; return t; };
+// Axis steps of 1, 2, 2.5 or 5 times a power of ten; the axis top is a whole number of steps.
+const niceStep = (raw) => { const p = 10 ** Math.floor(Math.log10(raw)); const f = raw / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * p; };
+const niceMax = (v, n = 4) => { const s = niceStep(v / n); return Math.ceil(v / s) * s; };
+const ticks = (max, n = 4) => { const step = niceStep(max / n); const out = []; for (let v = 0; v <= max + step / 1e6; v += step) out.push(+v.toFixed(10)); return out; };
+
+function tooltip(box) {
+  let t = box.querySelector(".tip");
+  if (!t) { t = document.createElement("div"); t.className = "tip"; t.hidden = true; box.appendChild(t); }
+  return {
+    show(lines, x, y) {
+      t.replaceChildren(...lines.map((l, i) => { const d = document.createElement("div"); const s = document.createElement(i ? "b" : "span"); s.textContent = l; d.appendChild(s); return d; }));
+      t.hidden = false;
+      const bw = box.clientWidth; t.style.left = Math.max(0, Math.min(bw - t.offsetWidth, x + 12)) + "px";
+      t.style.top = Math.max(0, y - t.offsetHeight - 10) + "px";
+    },
+    hide() { t.hidden = true; }
+  };
+}
+
+/* ---------- Header and tiles ---------- */
+const H = D.headline, cur = H[H.length - 1], prev = H[H.length - 2], first = H[0];
+document.getElementById("lead").textContent =
+  `In ${cur.financial_year} there were ${fmtM(cur.attendances)} A&E attendances in England, ${((cur.attendances / prev.attendances - 1) * 100).toFixed(1)}% more than the year before. ` +
+  `${fmtPct(cur.pct_within_4h)} of patients were seen within 4 hours, up from a low of ${fmtPct(Math.min(...H.map(r => r.pct_within_4h)))}, but well below the ${fmtPct(first.pct_within_4h)} of ${first.financial_year}.`;
+if (APP_URL) document.getElementById("link-app").href = APP_URL; else document.getElementById("link-app").remove();
+
+const tiles = [
+  ["Attendances", fmtM(cur.attendances), (cur.attendances / prev.attendances - 1) * 100, "%", null],
+  ["Seen within 4 hours", fmtPct(cur.pct_within_4h), cur.pct_within_4h - prev.pct_within_4h, " pts", true],
+  ["Over 12 hours in A&E", fmtPct(cur.pct_over_12h), cur.pct_over_12h - prev.pct_over_12h, " pts", false],
+  ["Admitted to hospital", fmtPct(cur.pct_admitted), cur.pct_admitted - prev.pct_admitted, " pts", null],
+];
+const tilesBox = document.getElementById("tiles");
+tiles.forEach(([label, value, d, unit, upGood]) => {
+  const t = document.createElement("div"); t.className = "tile";
+  const l = document.createElement("div"); l.className = "label"; l.textContent = `${label}, ${cur.financial_year}`;
+  const n = document.createElement("div"); n.className = "num"; n.textContent = value;
+  const dl = document.createElement("div");
+  const cls = upGood === null ? "flat" : ((d >= 0) === upGood ? "good" : "bad");
+  dl.className = "delta " + cls; dl.textContent = `${d >= 0 ? "+" : "−"}${Math.abs(d).toFixed(1)}${unit} on ${prev.financial_year}`;
+  t.append(l, n, dl); tilesBox.appendChild(t);
+});
+
+document.getElementById("demand-note").textContent =
+  `Monthly attendances have grown from about ${fmtM(D.monthly.find(r => r.month === "2021-07").attendances)} in July 2021 to ${fmtM(D.monthly[D.monthly.length - 1].attendances)} in ${new Date(D.monthly[D.monthly.length - 1].month + "-01").toLocaleString("en-GB", { month: "long", year: "numeric" })}. Source: ECDS open data.`;
+
+/* ---------- Charts ---------- */
+function lineChart(id, rows, xKey, yKey, opts = {}) {
+  const box = document.getElementById(id); box.querySelectorAll("svg").forEach(s => s.remove());
+  const W = Math.max(300, box.clientWidth), Hh = opts.height || 260, m = { t: 12, r: 16, b: 26, l: 48 };
+  const svg = el("svg", { viewBox: `0 0 ${W} ${Hh}`, role: "img", "aria-label": opts.label || "" }, box);
+  const ys = rows.map(r => r[yKey]); const yMax = opts.yMax || niceMax(Math.max(...ys) * 1.05); const yMin = opts.yMin || 0;
+  const x = (i) => m.l + (W - m.l - m.r) * (rows.length === 1 ? .5 : i / (rows.length - 1));
+  const y = (v) => Hh - m.b - (Hh - m.t - m.b) * (v - yMin) / (yMax - yMin);
+  ticks(yMax - yMin).forEach(tv => { const v = tv + yMin; el("line", { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: css("--grid") }, svg);
+    txt(opts.yFmt ? opts.yFmt(v) : v, { x: m.l - 6, y: y(v) + 4, "text-anchor": "end" }, svg); });
+  const every = opts.xEvery || Math.ceil(rows.length / 6);
+  rows.forEach((r, i) => { if (opts.xTick ? opts.xTick(r, i) : i % every === 0) txt(opts.xFmt ? opts.xFmt(r[xKey]) : r[xKey], { x: x(i), y: Hh - 6, "text-anchor": "middle" }, svg); });
+  const d = rows.map((r, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(r[yKey]).toFixed(1)}`).join("");
+  if (opts.area) {
+    el("path", { d: d + `L${x(rows.length - 1)},${y(yMin)}L${x(0)},${y(yMin)}Z`, fill: css("--accent-soft"), opacity: .6 }, svg);
+  }
+  const p = el("path", { d, fill: "none", stroke: css("--accent"), "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round", class: "draw" }, svg);
+  p.style.setProperty("--len", p.getTotalLength());
+  if (opts.dots) rows.forEach((r, i) => el("circle", { cx: x(i), cy: y(r[yKey]), r: 3.5, fill: css("--accent") }, svg));
+  const last = rows.length - 1;
+  if (opts.endLabel) txt(opts.endLabel(rows[last][yKey]), { x: x(last), y: y(rows[last][yKey]) - 9, "text-anchor": "end", class: "lbl" }, svg);
+  const tip = tooltip(box), dot = el("circle", { r: 4.5, fill: css("--accent"), stroke: css("--panel"), "stroke-width": 2, opacity: 0 }, svg);
+  svg.addEventListener("pointermove", (ev) => {
+    const rect = svg.getBoundingClientRect(); const px = (ev.clientX - rect.left) * W / rect.width;
+    const i = Math.max(0, Math.min(last, Math.round((px - m.l) / (W - m.l - m.r) * last))); const r = rows[i];
+    dot.setAttribute("cx", x(i)); dot.setAttribute("cy", y(r[yKey])); dot.setAttribute("opacity", 1);
+    tip.show([opts.tipX ? opts.tipX(r[xKey]) : r[xKey], opts.tipY ? opts.tipY(r[yKey]) : r[yKey]], x(i) * rect.width / W, y(r[yKey]) * rect.height / Hh);
+  });
+  svg.addEventListener("pointerleave", () => { tip.hide(); dot.setAttribute("opacity", 0); });
+}
+
+const monthName = (s) => new Date(s + "-01").toLocaleString("en-GB", { month: "short", year: "numeric" });
+function drawAll() {
+  lineChart("c-monthly", D.monthly, "month", "attendances", {
+    area: true, height: 280, yFmt: v => v === 0 ? "0" : (v / 1e6).toFixed(1) + "m", label: "Monthly A&E attendances",
+    xTick: (r) => r.month.endsWith("-04"),
+    xFmt: s => document.getElementById("c-monthly").clientWidth < 520 ? s.slice(0, 4) : "Apr " + s.slice(2, 4),
+    tipX: monthName, tipY: v => fmtInt(v) + " attendances", endLabel: v => fmtM(v)
+  });
+  lineChart("c-4h", H, "financial_year", "pct_within_4h", {
+    dots: true, yMin: 50, yMax: 90, yFmt: v => v + "%", xEvery: 1, xFmt: s => s.slice(2),
+    tipY: v => fmtPct(v) + " within 4 hours", endLabel: fmtPct, label: "Percentage seen within 4 hours by year"
+  });
+  lineChart("c-12h", H, "financial_year", "pct_over_12h", {
+    dots: true, yMax: 10, yFmt: v => v + "%", xEvery: 1, xFmt: s => s.slice(2),
+    tipY: v => fmtPct(v) + " over 12 hours", endLabel: fmtPct, label: "Percentage over 12 hours by year"
+  });
+  imdChart(); ageChart(); scatter();
+}
+
+/* Deprivation: two lines, most vs least deprived */
+function imdChart() {
+  const box = document.getElementById("c-imd"); box.querySelectorAll("svg").forEach(s => s.remove());
+  const rows = D.imd, W = Math.max(300, box.clientWidth), Hh = 250, m = { t: 14, r: 64, b: 26, l: 52 };
+  const svg = el("svg", { viewBox: `0 0 ${W} ${Hh}`, role: "img", "aria-label": "Attendance rate in the most and least deprived areas" }, box);
+  const yMax = niceMax(Math.max(...rows.map(r => r.most)) * 1.05);
+  const x = i => m.l + (W - m.l - m.r) * i / (rows.length - 1), y = v => Hh - m.b - (Hh - m.t - m.b) * v / yMax;
+  ticks(yMax).forEach(v => { el("line", { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: css("--grid") }, svg); txt((v / 1000) + "k", { x: m.l - 6, y: y(v) + 4, "text-anchor": "end" }, svg); });
+  rows.forEach((r, i) => txt(r.year.slice(2), { x: x(i), y: Hh - 6, "text-anchor": "middle" }, svg));
+  [["most", css("--bad"), "Most deprived 10%"], ["least", css("--neutral"), "Least deprived 10%"]].forEach(([k, c, name]) => {
+    el("path", { d: rows.map((r, i) => `${i ? "L" : "M"}${x(i)},${y(r[k])}`).join(""), fill: "none", stroke: c, "stroke-width": 2, "stroke-linecap": "round" }, svg);
+    rows.forEach((r, i) => el("circle", { cx: x(i), cy: y(r[k]), r: 3, fill: c }, svg));
+    const l = rows[rows.length - 1]; txt(fmtInt(l[k] / 1000) + "k", { x: x(rows.length - 1) + 8, y: y(l[k]) + 4, class: "lbl" }, svg);
+  });
+  const leg = document.getElementById("imd-legend"); leg.replaceChildren();
+  [["Most deprived 10% of areas", css("--bad")], ["Least deprived 10%", css("--neutral")]].forEach(([n, c]) => { const s = document.createElement("span"); const i = document.createElement("i"); i.className = "ln"; i.style.background = c; s.append(i, n); leg.appendChild(s); });
+  const l = rows[rows.length - 1];
+  document.getElementById("who-note").textContent = `In ${l.year}, people living in the most deprived tenth of neighbourhoods attended A&E ${fmtInt(l.most)} times per 100,000 residents, ${(l.most / l.least).toFixed(2)} times the rate in the least deprived tenth. The gap has held at close to two to one in every year since 2020-21.`;
+  const tip = tooltip(box);
+  svg.addEventListener("pointermove", ev => { const rect = svg.getBoundingClientRect(); const px = (ev.clientX - rect.left) * W / rect.width;
+    const i = Math.max(0, Math.min(rows.length - 1, Math.round((px - m.l) / (W - m.l - m.r) * (rows.length - 1)))); const r = rows[i];
+    tip.show([r.year, `Most deprived: ${fmtInt(r.most)}`, `Least deprived: ${fmtInt(r.least)}`], x(i) * rect.width / W, y(r.most) * rect.height / Hh); });
+  svg.addEventListener("pointerleave", () => tip.hide());
+}
+
+/* Age: bars */
+function ageChart() {
+  const box = document.getElementById("c-age"); box.querySelectorAll("svg").forEach(s => s.remove());
+  const rows = D.age.filter(r => r.rate != null), W = Math.max(300, box.clientWidth), Hh = 250, m = { t: 14, r: 8, b: 30, l: 44 };
+  document.getElementById("age-title").textContent = `Attendances per 100,000 people, by age, ${H[H.length - 1].financial_year}`;
+  const svg = el("svg", { viewBox: `0 0 ${W} ${Hh}`, role: "img", "aria-label": "Attendance rate by age group" }, box);
+  const yMax = niceMax(Math.max(...rows.map(r => r.rate)) * 1.05), bw = (W - m.l - m.r) / rows.length;
+  const y = v => Hh - m.b - (Hh - m.t - m.b) * v / yMax;
+  ticks(yMax).forEach(v => { el("line", { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: css("--grid") }, svg); txt((v / 1000) + "k", { x: m.l - 6, y: y(v) + 4, "text-anchor": "end" }, svg); });
+  const peak = Math.max(...rows.map(r => r.rate));
+  const bars = rows.map((r, i) => el("rect", { x: m.l + i * bw + bw * .15, width: Math.max(2, bw * .7), y: y(r.rate), height: y(0) - y(r.rate), rx: 2,
+    fill: r.age === "0" || r.age === "90+" ? css("--accent") : css("--neutral") }, svg));
+  rows.forEach((r, i) => { if (["0", "10-14", "20-24", "40-44", "60-64", "80-84", "90+"].includes(r.age)) txt(r.age, { x: m.l + i * bw + bw / 2, y: Hh - 10, "text-anchor": "middle" }, svg); });
+  const tip = tooltip(box);
+  bars.forEach((b, i) => { b.addEventListener("pointermove", ev => { const rect = svg.getBoundingClientRect(); tip.show([`Age ${rows[i].age}`, fmtInt(rows[i].rate) + " per 100,000"], (ev.clientX - rect.left), (ev.clientY - rect.top)); });
+    b.addEventListener("pointerleave", () => tip.hide()); });
+}
+
+/* Trusts: scatter + table */
+const ENG = D.england;
+document.getElementById("trust-note").textContent = (() => {
+  const t = D.trusts, best = t.reduce((a, b) => a.pct_over_12h < b.pct_over_12h ? a : b), worst = t[0];
+  const dbl = t.filter(r => r.pct_over_12h >= 2 * ENG.pct_over_12h).length;
+  return `${D.trust_year}, ${t.length} trusts with a major A&E. The share of patients spending over 12 hours ranged from ${fmtPct(best.pct_over_12h)} to ${fmtPct(worst.pct_over_12h)} (England ${fmtPct(ENG.pct_over_12h)}); ${dbl} trusts had at least double England's rate. Source: ECDS provider level analysis.`;
+})();
+
+let highlighted = null;
+function scatter() {
+  const box = document.getElementById("c-scatter"); box.querySelectorAll("svg").forEach(s => s.remove());
+  const rows = D.trusts, W = Math.max(300, box.clientWidth), Hh = 320, m = { t: 12, r: 14, b: 40, l: 44 };
+  const svg = el("svg", { viewBox: `0 0 ${W} ${Hh}`, role: "img", "aria-label": "Trusts by 4 hour and 12 hour performance" }, box);
+  const xMin = Math.floor(Math.min(...rows.map(r => r.pct_within_4h)) / 10) * 10, xMax = 100;
+  const yMax = niceMax(Math.max(...rows.map(r => r.pct_over_12h)) * 1.05);
+  const x = v => m.l + (W - m.l - m.r) * (v - xMin) / (xMax - xMin), y = v => Hh - m.b - (Hh - m.t - m.b) * v / yMax;
+  ticks(yMax).forEach(v => { el("line", { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: css("--grid") }, svg); txt(v + "%", { x: m.l - 6, y: y(v) + 4, "text-anchor": "end" }, svg); });
+  for (let v = xMin; v <= xMax; v += 10) txt(v + "%", { x: x(v), y: Hh - 22, "text-anchor": "middle" }, svg);
+  txt("Seen within 4 hours (higher is better)", { x: W - m.r, y: Hh - 4, "text-anchor": "end" }, svg);
+  el("line", { x1: x(ENG.pct_within_4h), x2: x(ENG.pct_within_4h), y1: m.t, y2: Hh - m.b, stroke: css("--muted"), "stroke-dasharray": "4 4" }, svg);
+  el("line", { x1: m.l, x2: W - m.r, y1: y(ENG.pct_over_12h), y2: y(ENG.pct_over_12h), stroke: css("--muted"), "stroke-dasharray": "4 4" }, svg);
+  txt("England", { x: x(ENG.pct_within_4h) + 4, y: m.t + 10 }, svg);
+  const dots = rows.map(r => el("circle", { cx: x(r.pct_within_4h), cy: y(r.pct_over_12h), r: r.org_code === highlighted ? 7 : 4.5,
+    fill: r.org_code === highlighted ? css("--accent") : (r.pct_over_12h > ENG.pct_over_12h ? css("--bad") : css("--neutral")),
+    "fill-opacity": r.org_code === highlighted ? 1 : .7, stroke: css("--panel"), "stroke-width": 1 }, svg));
+  const tip = tooltip(box);
+  svg.addEventListener("pointermove", ev => {
+    const rect = svg.getBoundingClientRect(); const px = (ev.clientX - rect.left) * W / rect.width, py = (ev.clientY - rect.top) * Hh / rect.height;
+    let bi = -1, bd = 900; rows.forEach((r, i) => { const d = (x(r.pct_within_4h) - px) ** 2 + (y(r.pct_over_12h) - py) ** 2; if (d < bd) { bd = d; bi = i; } });
+    if (bi < 0) return tip.hide(); const r = rows[bi];
+    tip.show([r.org_name, `Within 4h: ${fmtPct(r.pct_within_4h)}`, `Over 12h: ${fmtPct(r.pct_over_12h)}`], x(r.pct_within_4h) * rect.width / W, y(r.pct_over_12h) * rect.height / Hh);
+  });
+  svg.addEventListener("pointerleave", () => tip.hide());
+}
+
+let sortKey = "pct_over_12h", sortDir = -1;
+function table() {
+  const q = document.getElementById("q").value.trim().toLowerCase();
+  const maxOver = Math.max(...D.trusts.map(r => r.pct_over_12h));
+  const rows = D.trusts.filter(r => !q || r.org_name.toLowerCase().includes(q))
+    .sort((a, b) => (typeof a[sortKey] === "string" ? a[sortKey].localeCompare(b[sortKey]) : a[sortKey] - b[sortKey]) * sortDir);
+  const tb = document.querySelector("#tbl tbody"); tb.replaceChildren();
+  rows.forEach(r => {
+    const tr = document.createElement("tr"); if (r.org_code === highlighted) tr.className = "hl";
+    const td = (t, cls) => { const c = document.createElement("td"); if (cls) c.className = cls; c.textContent = t; return c; };
+    const over = document.createElement("td"); over.className = "num";
+    const bar = document.createElement("span"); bar.className = "bar"; bar.style.width = (2.5 * r.pct_over_12h / maxOver) + "rem";
+    over.append(bar, fmtPct(r.pct_over_12h));
+    tr.append(td(r.org_name.replace(" NHS Foundation Trust", " FT").replace(" NHS Trust", "")), td(fmtInt(r.attendances), "num hide-narrow"), td(fmtPct(r.pct_within_4h), "num"), over);
+    tr.addEventListener("click", () => { highlighted = highlighted === r.org_code ? null : r.org_code; table(); scatter(); });
+    tr.style.cursor = "pointer";
+    tb.appendChild(tr);
+  });
+  document.querySelectorAll("#tbl th").forEach(th => { const k = th.querySelector("button").dataset.k; th.setAttribute("aria-sort", k === sortKey ? (sortDir > 0 ? "ascending" : "descending") : "none"); });
+}
+document.querySelectorAll("#tbl th button").forEach(b => b.addEventListener("click", () => {
+  const k = b.dataset.k; if (k === sortKey) sortDir = -sortDir; else { sortKey = k; sortDir = k === "org_name" ? 1 : -1; } table(); }));
+document.getElementById("q").addEventListener("input", table);
+
+/* Autumn 2026 */
+(() => {
+  const a = D.autumn, s = a.segments, box = document.getElementById("autumn");
+  const p = (html) => { const e = document.createElement("p"); e.textContent = html; return e; };
+  box.append(
+    p(`In ${a.latest_month}, ${fmtPct(a.pct4_all_latest)} of patients were seen within 4 hours, down from ${fmtPct(a.pct4_all_first)} in July, and ${fmtInt(a.dta12_latest)} patients waited over 12 hours for a bed after the decision to admit them (${fmtInt(a.dta12_first)} in July).`),
+    p(`A seasonal model trained on 2018 to 2023 under-forecast these months by ${a.backtest_mape.toFixed(1)}% on average: demand now runs above its pre-2023 pattern. Clustering ${a.n_segmented} major A&E trusts on five pressure measures puts ${s["High pressure"] || 0} in a high-pressure group, ${s["Moderate pressure"] || 0} moderate and ${s["Lower pressure"] || 0} lower.`)
+  );
+})();
+
+drawAll(); table();
+let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(drawAll, 150); });
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", drawAll);
+</script>
+</body>
+</html>
