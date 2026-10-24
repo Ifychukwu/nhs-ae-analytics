@@ -1,0 +1,47 @@
+"""Plain-English notes on every dimension and measure. Shown in the app and
+given to the question-answering assistant so it uses the data correctly."""
+
+DIMENSION_NOTES = {
+    "Attendances": "Total A&E attendances recorded in ECDS, with the number and % admitted. No category.",
+    "Waiting times": "Time from arrival to departure: within 4 hours, over 4 hours, over 12 hours. Yearly only. No category.",
+    "Department type": "Type 1 (major consultant-led A&E), Type 2 (single specialty), Types 3 and 4 (urgent treatment centres, minor injury units, walk-in centres).",
+    "Attendance category": "First attendance, planned or unplanned follow-up.",
+    "Age": "Age band of the patient. Has population and rate per 100,000.",
+    "Gender": "Gender of the patient. Has population and rate per 100,000.",
+    "Ethnicity": "Ethnic group. Has population and rate per 100,000. A large share is 'Not stated' or 'Unknown'.",
+    "IMD decile": "Index of Multiple Deprivation decile of the patient's home area, most to least deprived. Has population and rate per 100,000.",
+    "Arrival mode": "Whether the patient arrived by ambulance.",
+    "Attendance source": "Where the patient was referred from or how they came (GP, NHS 111, ambulance, self...).",
+    "Chief complaint": "The main presenting complaint, as a SNOMED CT term.",
+    "First diagnosis": "The first (primary) diagnosis, as a SNOMED CT term.",
+    "Secondary diagnosis": "Further diagnoses, as SNOMED CT terms.",
+    "Investigation": "Tests carried out in A&E (blood tests, X-rays, CT...).",
+    "Treatment": "Treatments given in A&E.",
+    "Discharge destination": "Where the patient went next (home, ward, another hospital...).",
+    "Reattendances": "Unplanned returns to A&E within 7 days. No category.",
+    "Time of day": "Share of arrivals (or ambulance arrivals) by hour; the period is the weekday.",
+    "Acuity": "Triage acuity, 1 (immediate resuscitation) to 5 (non-urgent). Provider level only.",
+    "Duration in department": "Time spent in A&E in 10-minute bands. Provider level only.",
+    "Hour of arrival": "Arrivals by hour of the day. Provider level only.",
+    "Day of arrival": "Arrivals by day of the week. Provider level only.",
+    "Total": "Total attendances for the organisation. Provider level only.",
+}
+
+MEASURE_NOTES = {
+    "attendances": "Number of A&E attendances (or A&E records).",
+    "pct_of_total": "Share of all attendances in that period, as a percentage (0-100).",
+    "population": "Resident population used as the rate denominator.",
+    "rate_per_100k": "Attendances per 100,000 population.",
+    "admitted": "Attendances that ended in admission.",
+    "pct_admitted": "Percentage of attendances admitted (0-100).",
+    "within_4h": "Attendances with 4 hours or less from arrival to departure.",
+    "over_4h": "Attendances with more than 4 hours from arrival to departure.",
+    "over_12h": "Attendances with more than 12 hours from arrival to departure.",
+    "pct_within_4h": "Percentage within 4 hours (0-100).",
+    "pct_over_4h": "Percentage over 4 hours (0-100).",
+    "pct_over_12h": "Percentage over 12 hours (0-100).",
+    "attendances_ex_crs": "Attendances excluding sites piloting the Clinical Review of Standards.",
+    "reattendances": "Unplanned reattendances within 7 days.",
+    "unplanned_attendances": "Unplanned attendances (the reattendance denominator).",
+    "pct_reattendances": "Percentage of unplanned attendances that are reattendances (0-100).",
+}
