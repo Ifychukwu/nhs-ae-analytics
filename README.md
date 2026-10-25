@@ -4,7 +4,7 @@ An independent analysis of NHS England's public A&E data, from data cleaning and
 published dashboard and an interactive app.
 
 **Dashboard:** https://ifychukwu.github.io/nhs-ae-analytics/
-**Live app:** _add your Streamlit link here_
+**Live app:** _ https://nhs-ae-analytics-l7ywhuw5jw7wppnatnnuic.streamlit.app/
 
 [![A&E in England, 2020 to 2026: headline figures and monthly trend](docs/img/overview.png)](https://ifychukwu.github.io/nhs-ae-analytics/)
 
