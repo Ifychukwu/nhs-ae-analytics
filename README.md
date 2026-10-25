@@ -4,8 +4,7 @@ An independent analysis of NHS England's public A&E data, from data cleaning and
 published dashboard and an interactive app.
 
 **Dashboard:** https://ifychukwu.github.io/nhs-ae-analytics/
-**Live app:** _ https://nhs-ae-analytics-l7ywhuw5jw7wppnatnnuic.streamlit.app/
-
+**Live app**: https://nhs-ae-analytics-kiijduesvckxegdqhdojfe.streamlit.app/
 [![A&E in England, 2020 to 2026: headline figures and monthly trend](docs/img/overview.png)](https://ifychukwu.github.io/nhs-ae-analytics/)
 
 [![Trust performance: 4 hour performance against 12 hour stays](docs/img/trusts.png)](https://ifychukwu.github.io/nhs-ae-analytics/)
