@@ -31,17 +31,6 @@ Every build runs data checks before anything is published. They caught three pro
 3. **The 4 hour percentage excludes sites piloting new standards**, so it is calculated as within 4 hours
    ÷ (within + over 4 hours), matching NHS England's published 2024-25 figure (70.8% vs 70.9%).
 
-## Rebuild the dashboard
-
-```bash
-pip install pandas
-python site/build_site.py      # writes docs/index.html
-```
-
-To publish it: on GitHub go to **Settings → Pages**, set **Source** to *Deploy from a branch*, choose
-branch `main` and folder `/docs`, and save. The page appears at `https://<your-username>.github.io/nhs-ae-analytics/`
-within a few minutes. To show a link to the live app on the page, paste its address into `APP_URL`
-near the top of the script in `site/template.html` and rebuild.
 
 ## Data source
 
